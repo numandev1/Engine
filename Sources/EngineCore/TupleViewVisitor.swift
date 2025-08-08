@@ -5,8 +5,27 @@
 import SwiftUI
 
 extension TupleView: MultiView {
-    public func makeSubviewIterator() -> some MultiViewIterator {
-        TupleSubviewIterator(content: value)
+    public nonisolated func makeSubviewIterator() -> some MultiViewIterator {
+        SafeTupleSubviewIterator(tupleView: self)
+    }
+}
+
+private struct SafeTupleSubviewIterator<Content>: MultiViewIterator {
+    let tupleView: TupleView<Content>
+    
+    init(tupleView: TupleView<Content>) {
+        self.tupleView = tupleView
+    }
+    
+    func visit<Visitor: MultiViewVisitor>(
+        visitor: UnsafeMutablePointer<Visitor>,
+        context: Context,
+        stop: inout Bool
+    ) {
+        let content = try! swift_getFieldValue("value", Content.self, tupleView)
+        
+        let iterator = TupleSubviewIterator(content: content)
+        iterator.visit(visitor: visitor, context: context, stop: &stop)
     }
 }
 
